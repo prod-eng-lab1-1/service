@@ -69,3 +69,4 @@ NOTE: for a live demo, please check out [this youtube video](https://youtu.be/-9
   * http://localhost:8090
   * default credentials: username `unibuc`, password `adobe`
   * database `test` contains application entities
+##test
