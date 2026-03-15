@@ -4,10 +4,10 @@ import java.util.List;
 
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-import ro.unibuc.prodeng.model.TodoEntity;
+import ro.unibuc.prodeng.model.BookEntity;
 
 @Repository
-public interface TodoRepository extends MongoRepository<TodoEntity, String> {
+public interface BookRepository extends MongoRepository<BookEntity, String> {
 
-    List<TodoEntity> findByAssignedUserId(String assignedUserId);
+    List<BookEntity> findByBorrowerUserId(String borrowerUserId);
 }

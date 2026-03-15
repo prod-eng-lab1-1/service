@@ -6,9 +6,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.data.mongodb.repository.config.EnableMongoRepositories;
 
 import ro.unibuc.prodeng.repository.UserRepository;
-import ro.unibuc.prodeng.request.CreateTodoRequest;
+import ro.unibuc.prodeng.request.CreateBookRequest;
 import ro.unibuc.prodeng.request.CreateUserRequest;
-import ro.unibuc.prodeng.service.TodoService;
+import ro.unibuc.prodeng.service.BookService;
 import ro.unibuc.prodeng.service.UserService;
 
 import jakarta.annotation.PostConstruct;
@@ -17,25 +17,27 @@ import jakarta.annotation.PostConstruct;
 @EnableMongoRepositories
 public class ProdEngApplication {
 
-	@Autowired
-	private UserService userService;
+    @Autowired
+    private UserService userService;
 
-	@Autowired
-	private TodoService todoService;
+    @Autowired
+    private BookService bookService;
 
-	@Autowired
-	private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-	public static void main(String[] args) {
-		SpringApplication.run(ProdEngApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(ProdEngApplication.class, args);
+    }
 
-	@PostConstruct
-	public void runAfterObjectCreated() {
-		if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
-			CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me");
-			userService.createUser(userRequest);
-			todoService.createTodo(new CreateTodoRequest("Take the ring to Mordor", "frodo@theshire.me"));
-		}
-	}
+    @PostConstruct
+    public void runAfterObjectCreated() {
+        if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
+            CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me");
+            userService.createUser(userRequest);
+            
+            // Am inlocuit logica de Todo cu crearea unei carti imprumutate catre Frodo
+            bookService.createBook(new CreateBookRequest("The Fellowship of the Ring", "frodo@theshire.me"));
+        }
+    }
 }
