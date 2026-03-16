@@ -67,3 +67,4 @@ class UserServiceTest {
         UserResponse result = userService.changeName("1", "New Name");
         assertEquals("New Name", result.name());
     }
+}
