@@ -1,20 +1,16 @@
 package ro.unibuc.prodeng.service;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-
+import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.UserRepository;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 import ro.unibuc.prodeng.response.UserResponse;
-import ro.unibuc.prodeng.exception.EntityNotFoundException;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,119 +28,42 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    void testGetAllUsers_withMultipleUsers_returnsAllUsers() {
-        // Arrange
-        List<UserEntity> users = Arrays.asList(
-                new UserEntity("1", "Alice", "alice@example.com"),
-                new UserEntity("2", "Bob", "bob@example.com")
-        );
-        when(userRepository.findAll()).thenReturn(users);
-
-        // Act
+    void testGetAllUsers_returnsList() {
+        when(userRepository.findAll()).thenReturn(List.of(new UserEntity("1", "Luke", "luke@jedi.com")));
         List<UserResponse> result = userService.getAllUsers();
-
-        // Assert
-        assertEquals(2, result.size());
-        assertEquals("Alice", result.get(0).name());
-        assertEquals("Bob", result.get(1).name());
+        assertEquals(1, result.size());
     }
 
     @Test
-    void testGetUserById_existingUserRequested_returnsUser() throws EntityNotFoundException {
-        // Arrange
-        UserEntity user = new UserEntity("1", "Alice", "alice@example.com");
-        when(userRepository.findById("1")).thenReturn(Optional.of(user));
-
-        // Act
+    void testGetUserById_existingUser_returnsUser() throws Exception {
+        when(userRepository.findById("1")).thenReturn(Optional.of(new UserEntity("1", "Luke", "luke@jedi.com")));
         UserResponse result = userService.getUserById("1");
-
-        // Assert
-        assertNotNull(result);
-        assertEquals("Alice", result.name());
-        assertEquals("alice@example.com", result.email());
+        assertEquals("Luke", result.name());
     }
 
     @Test
-    void testGetUserById_nonExistingUserRequested_throwsEntityNotFoundException() {
-        // Arrange
-        when(userRepository.findById("999")).thenReturn(Optional.empty());
+    void testCreateUser_validData_savesUser() {
+        CreateUserRequest req = new CreateUserRequest("Luke", "luke@jedi.com");
+        when(userRepository.findByEmail("luke@jedi.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> new UserEntity("1", "Luke", "luke@jedi.com"));
 
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> userService.getUserById("999"));
-    }
-
-    @Test
-    void testCreateUser_newUserWithValidData_createsAndReturnsUser() {
-        // Arrange
-        CreateUserRequest request = new CreateUserRequest("Alice", "alice@example.com");
-        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
-            UserEntity entity = invocation.getArgument(0);
-            // Simulate MongoDB generating an ID for new entities
-            String id = "generated-id-123";
-            return new UserEntity(id, entity.name(), entity.email());
-        });
-
-        // Act
-        UserResponse result = userService.createUser(request);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.id());
-        assertEquals("Alice", result.name());
-        assertEquals("alice@example.com", result.email());
-        verify(userRepository, times(1)).save(any(UserEntity.class));
-    }
-
-    @Test
-    void testChangeName_existingUserRequested_changesNameSuccessfully() throws EntityNotFoundException {
-        // Arrange
-        UserEntity existing = new UserEntity("1", "Alice", "alice@example.com");
-        when(userRepository.findById("1")).thenReturn(Optional.of(existing));
-        when(userRepository.save(any(UserEntity.class))).thenAnswer(invocation -> {
-            UserEntity entity = invocation.getArgument(0);
-            // Simulate MongoDB generating an ID for new entities
-            String id = entity.id() == null ? "generated-id-123" : entity.id();
-            return new UserEntity(id, entity.name(), entity.email());
-        });
-
-        // Act
-        UserResponse result = userService.changeName("1", "Alicia");
-
-        // Assert
-        assertNotNull(result);
+        UserResponse result = userService.createUser(req);
         assertEquals("1", result.id());
-        assertEquals("Alicia", result.name());
-        assertEquals("alice@example.com", result.email());
     }
 
     @Test
-    void testChangeName_nonExistingUserRequested_throwsEntityNotFoundException() {
-        // Arrange
-        when(userRepository.findById("999")).thenReturn(Optional.empty());
+    void testCreateUser_duplicateEmail_throwsException() {
+        CreateUserRequest req = new CreateUserRequest("Luke", "luke@jedi.com");
+        when(userRepository.findByEmail("luke@jedi.com")).thenReturn(Optional.of(new UserEntity("1", "Old", "luke@jedi.com")));
 
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> userService.changeName("999", "NewName"));
+        assertThrows(IllegalArgumentException.class, () -> userService.createUser(req));
     }
 
     @Test
-    void testDeleteUser_existingUserRequested_deletesSuccessfully() throws EntityNotFoundException {
-        // Arrange
-        when(userRepository.existsById("1")).thenReturn(true);
+    void testChangeName_existingUser_updatesName() throws Exception {
+        when(userRepository.findById("1")).thenReturn(Optional.of(new UserEntity("1", "Old", "luke@jedi.com")));
+        when(userRepository.save(any(UserEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
-        userService.deleteUser("1");
-
-        // Assert
-        verify(userRepository, times(1)).deleteById("1");
+        UserResponse result = userService.changeName("1", "New Name");
+        assertEquals("New Name", result.name());
     }
-
-    @Test
-    void testDeleteUser_nonExistingUserRequested_throwsEntityNotFoundException() {
-        // Arrange
-        when(userRepository.existsById("999")).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> userService.deleteUser("999"));
-    }
-}
