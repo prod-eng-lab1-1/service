@@ -6,12 +6,12 @@
 * **Frunzeanu Calin** - Monitoring and deployment
 
 ## Project Description
-The Library Management System is a backend RESTful application designed to manage the essential operations of a digital library. The system helps librarians organize books, manage users, and keep track of borrowing activities in an efficient and structured way.
+The Library Management System is an advanced backend RESTful application designed to manage the essential operations of a digital library. The system helps librarians organize the book catalog, manage users, and enforce real-world business rules such as borrowing limits, real-time stock tracking, and automated waitlist (reservation) management.
 
 ## Tech Stack
 * **Backend:** Spring Boot (Java 21)
 * **Database:** MongoDB
-* **Testing:** JUnit, Mockito, Cucumber (BDD)
+* **Testing:** JUnit, Mockito, JaCoCo (Unit Testing & Coverage)
 * **Monitoring:** Prometheus, Grafana, Loki
 * **Deployment:** Docker & Docker Compose
 
@@ -32,24 +32,24 @@ To follow the trunk-based development and ensure individual contributions are pr
 * `PATCH /api/users/{id}/name` - Update a member's name
 * `DELETE /api/users/{id}` - Remove a member from the system
 
-### 📚 Feature 2: Book Catalog Management
+### 📚 Feature 2: Book Catalog & Inventory Management
 **Assigned to:** Dinulescu Mihnea Stefan
 **Branch name convention:** `feature/mihnea-book-catalog`
-**Scope:** Managing the library's physical inventory and basic Book CRUD operations.
+**Scope:** Managing the library's physical inventory, tracking total copies, and basic Book CRUD operations.
 **Endpoints (4):**
-* `POST /api/books` - Add a new book to the catalog
-* `GET /api/books?borrowerEmail={email}` - Get all books borrowed by a specific user
-* `GET /api/books/{id}` - Retrieve a book by its ID
-* `DELETE /api/books/{id}` - Remove a book from the catalog
+* `POST /api/books` - Add a new book to the catalog (with specified number of copies)
+* `GET /api/books` - Get all books along with their stock and queue size
+* `GET /api/books/{id}` - Retrieve details of a specific book by ID
+* `DELETE /api/books/{id}` - Remove a book from the catalog entirely
 
-### 🔄 Feature 3: Borrowing Logic & Book Updates
+### 🔄 Feature 3: Advanced Borrowing Logic & Waitlist System
 **Assigned to:** Frunzeanu Calin
 **Branch name convention:** `feature/calin-borrowing-logic`
-**Scope:** Implementing the business logic for borrowing, returning, reassigning books, and system monitoring.
+**Scope:** Implementing strict business rules (max 3 books/user, duplicate prevention) and an automated reservation queue system.
 **Endpoints (3):**
-* `PATCH /api/books/{id}/borrowed` - Toggle the borrowed status (true/false)
-* `PATCH /api/books/{id}/borrower` - Transfer a book to a new borrower
-* `PATCH /api/books/{id}/title` - Edit the title of an existing book
+* `POST /api/books/{id}/borrow` - Borrow a book (Validates max borrow limits, duplicates, and physical stock)
+* `POST /api/books/{id}/reserve` - Join the waitlist for a book if the stock is currently 0
+* `POST /api/books/{id}/return` - Return a book (Automatically re-assigns the book to the first user in the reservation queue, if any)
 
 ---
 

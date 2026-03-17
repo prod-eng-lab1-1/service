@@ -33,11 +33,9 @@ public class ProdEngApplication {
     @PostConstruct
     public void runAfterObjectCreated() {
         if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
-            CreateUserRequest userRequest = new CreateUserRequest("Frodo Baggins", "frodo@theshire.me");
-            userService.createUser(userRequest);
-            
-            // Am inlocuit logica de Todo cu crearea unei carti imprumutate catre Frodo
-            bookService.createBook(new CreateBookRequest("The Fellowship of the Ring", "frodo@theshire.me"));
+            userService.createUser(new CreateUserRequest("Frodo Baggins", "frodo@theshire.me"));
+            // Cream o carte cu 2 exemplare disponibile pe stoc
+            bookService.createBook(new CreateBookRequest("The Fellowship of the Ring", 2));
         }
     }
 }

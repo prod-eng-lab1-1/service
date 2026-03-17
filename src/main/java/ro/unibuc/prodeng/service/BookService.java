@@ -1,18 +1,17 @@
 package ro.unibuc.prodeng.service;
 
-import java.util.List;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import ro.unibuc.prodeng.model.BookEntity;
-import ro.unibuc.prodeng.repository.BookRepository;
-import ro.unibuc.prodeng.model.UserEntity;
-import ro.unibuc.prodeng.request.AssignBookRequest;
-import ro.unibuc.prodeng.request.CreateBookRequest;
-import ro.unibuc.prodeng.request.EditBookRequest;
-import ro.unibuc.prodeng.response.BookResponse;
 import ro.unibuc.prodeng.exception.EntityNotFoundException;
+import ro.unibuc.prodeng.model.BookEntity;
+import ro.unibuc.prodeng.model.UserEntity;
+import ro.unibuc.prodeng.repository.BookRepository;
+import ro.unibuc.prodeng.request.BookActionRequest;
+import ro.unibuc.prodeng.request.CreateBookRequest;
+import ro.unibuc.prodeng.response.BookResponse;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 public class BookService {
@@ -23,79 +22,118 @@ public class BookService {
     @Autowired
     private UserService userService;
 
-    public List<BookResponse> getBooksByUserEmail(String email) throws EntityNotFoundException {
-        UserEntity user = userService.getUserEntityByEmail(email);
-        List<BookEntity> books = bookRepository.findByBorrowerUserId(user.id());
-        return books.stream()
-                .map(book -> toResponse(book, user))
-                .toList();
-    }
-
-    public BookResponse getBookById(String id) throws EntityNotFoundException {
-        BookEntity book = bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(id));
-        UserEntity borrower = userService.getUserEntityById(book.borrowerUserId());
-        return toResponse(book, borrower);
-    }
-
-    public BookResponse createBook(CreateBookRequest request) throws EntityNotFoundException {
-        UserEntity borrower = userService.getUserEntityByEmail(request.borrowerEmail());
+    public BookResponse createBook(CreateBookRequest request) {
         BookEntity book = new BookEntity(
-                null, // ID va fi generat automat de MongoDB
+                null,
                 request.title(),
-                false, // O carte nou adaugată nu e neapărat împrumutată by default
-                borrower.id()
+                request.copies(),
+                request.copies(), 
+                new ArrayList<>(),
+                new ArrayList<>()
         );
-        BookEntity saved = bookRepository.save(book);
-        return toResponse(saved, borrower);
+        return toResponse(bookRepository.save(book));
     }
 
-    // Funcționalitate pentru Returnare / Modificare status "împrumutat"
-    public BookResponse setBorrowed(String id, boolean borrowed) throws EntityNotFoundException {
-        BookEntity existing = getEntityById(id);
-        BookEntity updated = new BookEntity(id, existing.title(), borrowed, existing.borrowerUserId());
-        BookEntity saved = bookRepository.save(updated);
-        UserEntity borrower = userService.getUserEntityById(saved.borrowerUserId());
-        return toResponse(saved, borrower);
-    }
+    public BookResponse borrowBook(String bookId, BookActionRequest request) throws EntityNotFoundException {
+        BookEntity book = getEntityById(bookId);
+        UserEntity user = userService.getUserEntityByEmail(request.userEmail());
 
-    // Funcționalitate pentru a împrumuta o carte către un membru nou
-    public BookResponse assignBorrower(String id, AssignBookRequest request) throws EntityNotFoundException {
-        BookEntity existing = getEntityById(id);
-        UserEntity newBorrower = userService.getUserEntityByEmail(request.newBorrowerEmail());
-        BookEntity updated = new BookEntity(id, existing.title(), existing.borrowed(), newBorrower.id());
-        BookEntity saved = bookRepository.save(updated);
-        return toResponse(saved, newBorrower);
-    }
-
-    // Funcționalitate pentru a updata detaliile cărții (ex: titlul)
-    public BookResponse edit(String id, EditBookRequest request) throws EntityNotFoundException {
-        BookEntity existing = getEntityById(id);
-        BookEntity updated = new BookEntity(id, request.title(), existing.borrowed(), existing.borrowerUserId());
-        BookEntity saved = bookRepository.save(updated);
-        UserEntity borrower = userService.getUserEntityById(saved.borrowerUserId());
-        return toResponse(saved, borrower);
-    }
-
-    public void deleteBook(String id) throws EntityNotFoundException {
-        if (!bookRepository.existsById(id)) {
-            throw new EntityNotFoundException(id);
+        if (book.borrowerIds().contains(user.id())) {
+            throw new IllegalArgumentException("Ai împrumutat deja această carte!");
         }
-        bookRepository.deleteById(id);
+
+        long currentBorrowedBooks = bookRepository.findAll().stream()
+                .filter(b -> b.borrowerIds().contains(user.id()))
+                .count();
+        if (currentBorrowedBooks >= 3) {
+            throw new IllegalStateException("Ai atins limita maximă de 3 cărți împrumutate simultan!");
+        }
+
+        if (book.availableCopies() <= 0) {
+            throw new IllegalStateException("Stoc epuizat! Te rugăm să folosești opțiunea de rezervare.");
+        }
+
+        List<String> updatedBorrowers = new ArrayList<>(book.borrowerIds());
+        updatedBorrowers.add(user.id());
+
+        BookEntity updatedBook = new BookEntity(
+                book.id(), book.title(), book.totalCopies(),
+                book.availableCopies() - 1, updatedBorrowers, book.reservationQueue()
+        );
+
+        return toResponse(bookRepository.save(updatedBook));
+    }
+
+    public BookResponse reserveBook(String bookId, BookActionRequest request) throws EntityNotFoundException {
+        BookEntity book = getEntityById(bookId);
+        UserEntity user = userService.getUserEntityByEmail(request.userEmail());
+
+        if (book.borrowerIds().contains(user.id())) {
+            throw new IllegalArgumentException("Nu poți rezerva o carte pe care deja o ai acasă!");
+        }
+        if (book.reservationQueue().contains(user.id())) {
+            throw new IllegalArgumentException("Ești deja la coada de așteptare pentru această carte!");
+        }
+        if (book.availableCopies() > 0) {
+            throw new IllegalStateException("Cartea este pe stoc. O poți împrumuta direct!");
+        }
+
+        List<String> updatedQueue = new ArrayList<>(book.reservationQueue());
+        updatedQueue.add(user.id());
+
+        BookEntity updatedBook = new BookEntity(
+                book.id(), book.title(), book.totalCopies(),
+                book.availableCopies(), book.borrowerIds(), updatedQueue
+        );
+
+        return toResponse(bookRepository.save(updatedBook));
+    }
+
+    public BookResponse returnBook(String bookId, BookActionRequest request) throws EntityNotFoundException {
+        BookEntity book = getEntityById(bookId);
+        UserEntity user = userService.getUserEntityByEmail(request.userEmail());
+
+        if (!book.borrowerIds().contains(user.id())) {
+            throw new IllegalArgumentException("Nu poți returna o carte pe care nu o ai!");
+        }
+
+        List<String> updatedBorrowers = new ArrayList<>(book.borrowerIds());
+        updatedBorrowers.remove(user.id()); 
+
+        List<String> updatedQueue = new ArrayList<>(book.reservationQueue());
+        int newAvailableCopies = book.availableCopies() + 1;
+
+        if (!updatedQueue.isEmpty()) {
+            String nextUserInLineId = updatedQueue.remove(0);
+            updatedBorrowers.add(nextUserInLineId); 
+            newAvailableCopies--; 
+
+            System.out.println("NOTIFICARE: Cartea " + book.title() + " a fost asignată automat utilizatorului cu ID " + nextUserInLineId);
+        }
+
+        BookEntity updatedBook = new BookEntity(
+                book.id(), book.title(), book.totalCopies(),
+                newAvailableCopies, updatedBorrowers, updatedQueue
+        );
+
+        return toResponse(bookRepository.save(updatedBook));
+    }
+
+    public List<BookResponse> getAllBooks() {
+        return bookRepository.findAll().stream().map(this::toResponse).toList();
     }
 
     private BookEntity getEntityById(String id) throws EntityNotFoundException {
-        return bookRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException(id));
+        return bookRepository.findById(id).orElseThrow(() -> new EntityNotFoundException(id));
     }
 
-    private BookResponse toResponse(BookEntity book, UserEntity borrower) {
+    private BookResponse toResponse(BookEntity book) {
         return new BookResponse(
                 book.id(),
                 book.title(),
-                book.borrowed(),
-                borrower.name(),
-                borrower.email()
+                book.totalCopies(),
+                book.availableCopies(),
+                book.reservationQueue().size()
         );
     }
 }

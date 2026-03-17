@@ -9,11 +9,11 @@ import ro.unibuc.prodeng.exception.EntityNotFoundException;
 import ro.unibuc.prodeng.model.BookEntity;
 import ro.unibuc.prodeng.model.UserEntity;
 import ro.unibuc.prodeng.repository.BookRepository;
-import ro.unibuc.prodeng.request.AssignBookRequest;
+import ro.unibuc.prodeng.request.BookActionRequest;
 import ro.unibuc.prodeng.request.CreateBookRequest;
-import ro.unibuc.prodeng.request.EditBookRequest;
 import ro.unibuc.prodeng.response.BookResponse;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,139 +34,70 @@ class BookServiceTest {
     private BookService bookService;
 
     @Test
-    void testGetBooksByUserEmail_existingUser_returnsBooks() throws EntityNotFoundException {
-        // Arrange
-        UserEntity user = new UserEntity("1", "Luke", "luke@jedi.com");
-        BookEntity book = new BookEntity("b1", "Jedi Guide", false, "1");
-
-        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
-        when(bookRepository.findByBorrowerUserId("1")).thenReturn(List.of(book));
-
-        // Act
-        List<BookResponse> result = bookService.getBooksByUserEmail("luke@jedi.com");
-
-        // Assert
-        assertEquals(1, result.size());
-        assertEquals("Jedi Guide", result.get(0).title());
-    }
-
-    @Test
-    void testGetBookById_existingBook_returnsBook() throws EntityNotFoundException {
-        // Arrange
-        BookEntity book = new BookEntity("b1", "Jedi Guide", false, "1");
-        UserEntity user = new UserEntity("1", "Luke", "luke@jedi.com");
-
-        when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
-        when(userService.getUserEntityById("1")).thenReturn(user);
-
-        // Act
-        BookResponse result = bookService.getBookById("b1");
-
-        // Assert
-        assertEquals("Jedi Guide", result.title());
-        assertEquals("Luke", result.borrowerName());
-    }
-
-    @Test
-    void testGetBookById_nonExistingBook_throwsException() {
-        // Arrange
-        when(bookRepository.findById("invalid")).thenReturn(Optional.empty());
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> bookService.getBookById("invalid"));
-    }
-
-    @Test
-    void testCreateBook_validData_returnsSavedBook() throws EntityNotFoundException {
-        // Arrange
-        UserEntity user = new UserEntity("1", "Luke", "luke@jedi.com");
-        CreateBookRequest request = new CreateBookRequest("Jedi Guide", "luke@jedi.com");
-
-        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
+    void testCreateBook_savesSuccessfully() {
+        CreateBookRequest req = new CreateBookRequest("Title", 2);
         when(bookRepository.save(any(BookEntity.class))).thenAnswer(i -> {
             BookEntity b = i.getArgument(0);
-            return new BookEntity("b1", b.title(), b.borrowed(), b.borrowerUserId());
+            return new BookEntity("b1", b.title(), b.totalCopies(), b.availableCopies(), b.borrowerIds(), b.reservationQueue());
         });
 
-        // Act
-        BookResponse result = bookService.createBook(request);
-
-        // Assert
-        assertEquals("b1", result.id());
-        assertEquals("Jedi Guide", result.title());
+        BookResponse res = bookService.createBook(req);
+        assertEquals(2, res.availableCopies());
     }
 
     @Test
-    void testSetBorrowed_existingBook_updatesStatus() throws EntityNotFoundException {
-        // Arrange
-        BookEntity book = new BookEntity("b1", "Jedi Guide", false, "1");
-        UserEntity user = new UserEntity("1", "Luke", "luke@jedi.com");
-
+    void testBorrowBook_success_decreasesStock() throws Exception {
+        BookEntity book = new BookEntity("b1", "Title", 2, 2, new ArrayList<>(), new ArrayList<>());
+        UserEntity user = new UserEntity("u1", "Luke", "luke@jedi.com");
+        
         when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
-        when(bookRepository.save(any(BookEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(userService.getUserEntityById("1")).thenReturn(user);
-
-        // Act
-        BookResponse result = bookService.setBorrowed("b1", true);
-
-        // Assert
-        assertTrue(result.borrowed());
-    }
-
-    @Test
-    void testAssignBorrower_existingBookAndUser_updatesBorrower() throws EntityNotFoundException {
-        // Arrange
-        BookEntity book = new BookEntity("b1", "Jedi Guide", false, "1");
-        UserEntity newUser = new UserEntity("2", "Leia", "leia@rebel.com");
-        AssignBookRequest request = new AssignBookRequest("leia@rebel.com");
-
-        when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
-        when(userService.getUserEntityByEmail("leia@rebel.com")).thenReturn(newUser);
+        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
         when(bookRepository.save(any(BookEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
-        BookResponse result = bookService.assignBorrower("b1", request);
-
-        // Assert
-        assertEquals("Leia", result.borrowerName());
+        BookResponse res = bookService.borrowBook("b1", new BookActionRequest("luke@jedi.com"));
+        assertEquals(1, res.availableCopies());
     }
 
     @Test
-    void testEdit_existingBook_updatesTitle() throws EntityNotFoundException {
-        // Arrange
-        BookEntity book = new BookEntity("b1", "Old Title", false, "1");
-        UserEntity user = new UserEntity("1", "Luke", "luke@jedi.com");
-        EditBookRequest request = new EditBookRequest("New Title");
+    void testBorrowBook_noStock_throwsException() throws Exception {
+        BookEntity book = new BookEntity("b1", "Title", 1, 0, List.of("alt-user"), new ArrayList<>());
+        UserEntity user = new UserEntity("u1", "Luke", "luke@jedi.com");
 
         when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
+        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
+
+        assertThrows(IllegalStateException.class, () -> bookService.borrowBook("b1", new BookActionRequest("luke@jedi.com")));
+    }
+
+    @Test
+    void testReserveBook_success_addsToQueue() throws Exception {
+        BookEntity book = new BookEntity("b1", "Title", 1, 0, List.of("alt-user"), new ArrayList<>());
+        UserEntity user = new UserEntity("u1", "Luke", "luke@jedi.com");
+
+        when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
+        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
         when(bookRepository.save(any(BookEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(userService.getUserEntityById("1")).thenReturn(user);
 
-        // Act
-        BookResponse result = bookService.edit("b1", request);
-
-        // Assert
-        assertEquals("New Title", result.title());
+        BookResponse res = bookService.reserveBook("b1", new BookActionRequest("luke@jedi.com"));
+        assertEquals(1, res.queueSize());
     }
 
     @Test
-    void testDeleteBook_existingBook_deletesSuccessfully() throws EntityNotFoundException {
-        // Arrange
-        when(bookRepository.existsById("b1")).thenReturn(true);
+    void testReturnBook_withQueue_assignsToNext() throws Exception {
+        // Cartea are stoc 0, o are "u1", iar "u2" asteapta la coada
+        List<String> borrowers = new ArrayList<>(List.of("u1"));
+        List<String> queue = new ArrayList<>(List.of("u2"));
+        BookEntity book = new BookEntity("b1", "Title", 1, 0, borrowers, queue);
+        UserEntity user = new UserEntity("u1", "Luke", "luke@jedi.com");
 
-        // Act
-        bookService.deleteBook("b1");
+        when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
+        when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
+        when(bookRepository.save(any(BookEntity.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Assert
-        verify(bookRepository, times(1)).deleteById("b1");
-    }
-
-    @Test
-    void testDeleteBook_nonExistingBook_throwsException() {
-        // Arrange
-        when(bookRepository.existsById("invalid")).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(EntityNotFoundException.class, () -> bookService.deleteBook("invalid"));
+        BookResponse res = bookService.returnBook("b1", new BookActionRequest("luke@jedi.com"));
+        
+        // Stocul ramane 0 pt ca s-a dus direct la u2, coada devine 0
+        assertEquals(0, res.availableCopies());
+        assertEquals(0, res.queueSize());
     }
 }
