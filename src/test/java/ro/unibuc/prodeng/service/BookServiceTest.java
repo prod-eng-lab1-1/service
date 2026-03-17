@@ -59,14 +59,19 @@ class BookServiceTest {
     }
 
     @Test
-    void testBorrowBook_noStock_throwsException() throws Exception {
+    void testBorrowBook_noStock_returnsUnmodified() throws Exception {
+        // Cartea are stoc 0!
         BookEntity book = new BookEntity("b1", "Title", 1, 0, List.of("alt-user"), new ArrayList<>());
         UserEntity user = new UserEntity("u1", "Luke", "luke@jedi.com");
 
         when(bookRepository.findById("b1")).thenReturn(Optional.of(book));
         when(userService.getUserEntityByEmail("luke@jedi.com")).thenReturn(user);
 
-        assertThrows(IllegalStateException.class, () -> bookService.borrowBook("b1", new BookActionRequest("luke@jedi.com")));
+        // Aici nu mai folosim assertThrows, ci doar verificam ca nu s-a schimbat nimic
+        BookResponse res = bookService.borrowBook("b1", new BookActionRequest("luke@jedi.com"));
+        
+        assertEquals(0, res.availableCopies()); // Stocul a ramas 0
+        verify(bookRepository, never()).save(any()); // Verificam ca nicio schimbare n-a fost salvata in DB
     }
 
     @Test
@@ -84,7 +89,6 @@ class BookServiceTest {
 
     @Test
     void testReturnBook_withQueue_assignsToNext() throws Exception {
-        // Cartea are stoc 0, o are "u1", iar "u2" asteapta la coada
         List<String> borrowers = new ArrayList<>(List.of("u1"));
         List<String> queue = new ArrayList<>(List.of("u2"));
         BookEntity book = new BookEntity("b1", "Title", 1, 0, borrowers, queue);
@@ -96,7 +100,6 @@ class BookServiceTest {
 
         BookResponse res = bookService.returnBook("b1", new BookActionRequest("luke@jedi.com"));
         
-        // Stocul ramane 0 pt ca s-a dus direct la u2, coada devine 0
         assertEquals(0, res.availableCopies());
         assertEquals(0, res.queueSize());
     }

@@ -39,18 +39,21 @@ public class BookService {
         UserEntity user = userService.getUserEntityByEmail(request.userEmail());
 
         if (book.borrowerIds().contains(user.id())) {
-            throw new IllegalArgumentException("Ai împrumutat deja această carte!");
+            System.out.println("AVERTISMENT: Utilizatorul a împrumutat deja această carte.");
+            return toResponse(book);
         }
 
         long currentBorrowedBooks = bookRepository.findAll().stream()
                 .filter(b -> b.borrowerIds().contains(user.id()))
                 .count();
         if (currentBorrowedBooks >= 3) {
-            throw new IllegalStateException("Ai atins limita maximă de 3 cărți împrumutate simultan!");
+            System.out.println("AVERTISMENT: Utilizatorul a atins limita de 3 cărți.");
+            return toResponse(book);
         }
 
         if (book.availableCopies() <= 0) {
-            throw new IllegalStateException("Stoc epuizat! Te rugăm să folosești opțiunea de rezervare.");
+            System.out.println("AVERTISMENT: Stoc epuizat. Împrumutul a fost ignorat.");
+            return toResponse(book);
         }
 
         List<String> updatedBorrowers = new ArrayList<>(book.borrowerIds());
@@ -69,13 +72,16 @@ public class BookService {
         UserEntity user = userService.getUserEntityByEmail(request.userEmail());
 
         if (book.borrowerIds().contains(user.id())) {
-            throw new IllegalArgumentException("Nu poți rezerva o carte pe care deja o ai acasă!");
+            System.out.println("AVERTISMENT: Utilizatorul are deja cartea, nu o poate rezerva.");
+            return toResponse(book);
         }
         if (book.reservationQueue().contains(user.id())) {
-            throw new IllegalArgumentException("Ești deja la coada de așteptare pentru această carte!");
+            System.out.println("AVERTISMENT: Utilizatorul este deja la coada.");
+            return toResponse(book);
         }
         if (book.availableCopies() > 0) {
-            throw new IllegalStateException("Cartea este pe stoc. O poți împrumuta direct!");
+            System.out.println("AVERTISMENT: Cartea este pe stoc. Rezervarea a fost ignorată.");
+            return toResponse(book);
         }
 
         List<String> updatedQueue = new ArrayList<>(book.reservationQueue());
@@ -94,7 +100,8 @@ public class BookService {
         UserEntity user = userService.getUserEntityByEmail(request.userEmail());
 
         if (!book.borrowerIds().contains(user.id())) {
-            throw new IllegalArgumentException("Nu poți returna o carte pe care nu o ai!");
+            System.out.println("AVERTISMENT: Utilizatorul nu deține această carte. Returnare anulată.");
+            return toResponse(book);
         }
 
         List<String> updatedBorrowers = new ArrayList<>(book.borrowerIds());
