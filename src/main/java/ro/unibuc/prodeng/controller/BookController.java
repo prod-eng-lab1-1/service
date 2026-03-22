@@ -35,13 +35,13 @@ public class BookController {
         return ResponseEntity.ok(bookService.borrowBook(id, request));
     }
 
-    @PostMapping("/{id}/return")
-    public ResponseEntity<BookResponse> returnBook(@PathVariable String id, @Valid @RequestBody BookActionRequest request) throws EntityNotFoundException {
-        return ResponseEntity.ok(bookService.returnBook(id, request));
-    }
-
     @PostMapping("/{id}/reserve")
     public ResponseEntity<BookResponse> reserveBook(@PathVariable String id, @Valid @RequestBody BookActionRequest request) throws EntityNotFoundException {
         return ResponseEntity.ok(bookService.reserveBook(id, request));
+    }
+
+    @PostMapping("/{id}/return")
+    public ResponseEntity<BookResponse> returnBook(@PathVariable String id, @Valid @RequestBody BookActionRequest request) throws EntityNotFoundException {
+        return ResponseEntity.ok(bookService.returnBook(id, request));
     }
 }

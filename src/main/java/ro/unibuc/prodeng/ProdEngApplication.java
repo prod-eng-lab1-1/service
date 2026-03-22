@@ -30,11 +30,10 @@ public class ProdEngApplication {
         SpringApplication.run(ProdEngApplication.class, args);
     }
 
-    @PostConstruct
+   @PostConstruct
     public void runAfterObjectCreated() {
         if (userRepository.findByEmail("frodo@theshire.me").isEmpty()) {
             userService.createUser(new CreateUserRequest("Frodo Baggins", "frodo@theshire.me"));
-            // Cream o carte cu 2 exemplare disponibile pe stoc
             bookService.createBook(new CreateBookRequest("The Fellowship of the Ring", 2));
         }
     }

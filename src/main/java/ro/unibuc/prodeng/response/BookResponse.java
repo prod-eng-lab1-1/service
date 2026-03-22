@@ -5,5 +5,5 @@ public record BookResponse(
         String title,
         int totalCopies,
         int availableCopies,
-        int queueSize 
+        int queueSize
 ) {}

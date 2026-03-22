@@ -1,34 +1,31 @@
 # Library Management System
 
 ## Team: IngDevDPF
-* **Patrascu Alexandru** - Backend development, database design & User Management
+* **Patrascu Alexandru** - Backend development, database design & User Gamification
 * **Dinulescu Mihnea Stefan** - API development, testing & Catalog/Inventory Management
-* **Frunzeanu Calin** - Monitoring, deployment & Transactional Logic (Borrowing/Waitlist)
+* **Frunzeanu Calin** - Monitoring, deployment & Transactional Logic (Dynamic Borrowing/Priority Waitlist)
 
 ## Project Description
-The Library Management System is an advanced backend RESTful application designed to manage the essential operations of a modern digital library. Moving beyond simple CRUD operations, this system implements real-world business logic and state management. 
+The Library Management System is an advanced, enterprise-grade RESTful application. Moving beyond standard CRUD operations, this system implements dynamic business rules, a state-driven inventory, and a **Gamification & Priority Waitlist Engine**. 
 
-It allows librarians to manage a catalog of books (handling multiple physical copies per title), keeps track of registered members, and enforces strict borrowing policies. A core feature of the system is the **Automated Waitlist (Reservation) Engine**, which seamlessly handles out-of-stock scenarios by queuing users and automatically reassigning returned books to the next person in line.
+Users are incentivized to read and return books through an Experience Points (XP) system, ranking up from BRONZE to GOLD. A user's rank directly dictates their privileges within the system, altering borrowing limits and shifting their priority dynamically in the automated reservation queues.
 
 ## Tech Stack
 * **Backend:** Spring Boot (Java 21)
 * **Database:** MongoDB
-* **Testing:** JUnit 5, Mockito, JaCoCo (Unit Testing & Coverage), Cucumber (BDD End-to-End Testing)
-* **Monitoring:** Prometheus, Grafana, Loki
+* **Testing:** JUnit 5, Mockito, JaCoCo (Unit Testing & Coverage), Cucumber (BDD)
+* **Error Handling:** Graceful Global Exception Handling (`@ControllerAdvice`)
 * **Deployment:** Docker & Docker Compose
 
 ---
 
 ## Features & Team Work Breakdown
 
-To follow the trunk-based development and ensure individual contributions are properly tracked via Pull Requests, the system logic and the **12 API endpoints** are divided into 3 main architectural features:
-
-### 👤 Feature 1: User Management & Foundation
+### 👤 Feature 1: Gamified User Management & Foundation
 **Assigned to:** Patrascu Alexandru
-**Branch name convention:** `feature/alex-user-management`
-**Scope:** Building the foundation of the application. This feature handles the library's member registry, ensuring data integrity for users who will later interact with the book inventory.
+**Scope:** Building the member registry and the Gamification Engine. Every new user starts as `BRONZE`. The system tracks XP and automatically upgrades ranks (`SILVER`, `GOLD`) based on user activity, unlocking new platform privileges.
 **Endpoints (5):**
-* `POST /api/users` - Register a new member (Validates duplicate emails to prevent fraud).
+* `POST /api/users` - Register a new member (Initialized with 0 XP, BRONZE).
 * `GET /api/users` - Retrieve a full list of all registered library members.
 * `GET /api/users/{id}` - Retrieve detailed information about a specific member.
 * `PATCH /api/users/{id}/name` - Update a member's name dynamically.
@@ -36,27 +33,26 @@ To follow the trunk-based development and ensure individual contributions are pr
 
 ### 📚 Feature 2: Book Catalog & Inventory Management
 **Assigned to:** Dinulescu Mihnea Stefan
-**Branch name convention:** `feature/mihnea-book-catalog`
-**Scope:** Managing the library's physical inventory. Unlike simple CRUDs, a "Book" here represents a title that can have multiple physical copies. This feature tracks `totalCopies` and exposes real-time statistics like `availableCopies` and the current `queueSize` for reservations.
+**Scope:** Managing the physical inventory. A "Book" represents a title with multiple physical copies. Tracks `totalCopies`, real-time `availableCopies`, and the size of the reservation queue.
 **Endpoints (4):**
-* `POST /api/books` - Add a new book title to the catalog and define its initial physical stock (e.g., 5 copies).
-* `GET /api/books` - Get the entire catalog, including real-time stock availability and waitlist metrics.
-* `GET /api/books/{id}` - Retrieve details, stock, and queue size of a specific book by ID.
+* `POST /api/books` - Add a new book title and define its initial stock.
+* `GET /api/books` - Get the entire catalog with real-time stock and waitlist metrics.
+* `GET /api/books/{id}` - Retrieve details of a specific book by ID.
 * `DELETE /api/books/{id}` - Remove a book from the catalog entirely.
 
-### 🔄 Feature 3: Transactional Logic, Borrowing & Waitlist System
+### 🔄 Feature 3: Dynamic Transactional Logic & Priority Waitlist
 **Assigned to:** Frunzeanu Calin
-**Branch name convention:** `feature/calin-borrowing-logic`
-**Scope:** Implementing the core business rules of the library. This feature connects Users and Books through a strict set of validations and manages the state of the inventory.
-**Business Rules Implemented:**
-1. **Borrow Limit:** A user cannot borrow more than 3 books simultaneously.
-2. **Duplicate Prevention:** A user cannot borrow two physical copies of the exact same title.
-3. **Waitlist Auto-Assign:** If a book's stock is 0, users can join a queue. Upon return, the book skips the shelf and is instantly assigned to the first user in the queue.
+**Scope:** Implementing the core, dynamic business rules of the library. 
+**Advanced Business Rules Implemented:**
+1. **Dynamic Borrow Limits (Polymorphism):** BRONZE users can borrow 1 book, SILVER can borrow 3, GOLD can borrow 5.
+2. **XP Farming:** Returning a book yields +50 XP.
+3. **Priority Waitlist Engine:** If stock is 0, users join a queue. The queue is automatically and stably sorted by Rank (GOLD users jump ahead of BRONZE users in line).
+4. **Auto-Assign:** Upon return, the book skips the shelf and is instantly assigned to the 1st user in the priority queue.
 
 **Endpoints (3):**
-* `POST /api/books/{id}/borrow` - Borrows a book. Decreases `availableCopies`. Fails if stock is 0, limit is reached, or the user already has the book.
-* `POST /api/books/{id}/reserve` - Adds the user to the `reservationQueue` if the book is out of stock. Fails if the book is actually available.
-* `POST /api/books/{id}/return` - Returns a book. Automatically checks the `reservationQueue` and transfers the book to the next waiting user without increasing the shelf stock.
+* `POST /api/books/{id}/borrow` - Borrows a book, checking dynamic rank limits.
+* `POST /api/books/{id}/reserve` - Joins the waitlist. Triggers the Priority Sorting Algorithm based on User Rank.
+* `POST /api/books/{id}/return` - Returns a book, grants XP, recalculates rank, and re-assigns the book automatically.
 
 ---
 
@@ -65,14 +61,6 @@ To follow the trunk-based development and ensure individual contributions are pr
 * Follow the [./PREREQUISITES.md](./PREREQUISITES.md) instructions to configure a local virtual machine with Ubuntu, Docker, IntelliJ.
 
 ### Run code locally
-* Start the MongoDB database:
-  * `./start_mongo_only.sh`
-* Build and run the Spring Boot service:
-  * `./gradlew build`
-  * `./gradlew bootRun`
-* Use the provided `requests.http` file to test all API endpoints and business flows.
-
-### Run via Docker (Full Stack)
-* Build the image: `make build`
-* Start all containers: `./start.sh`
-* Access MongoDB Admin UI: `http://localhost:8090` (user: `unibuc` / pass: `adobe`)
+* Start the MongoDB database: `./start_mongo_only.sh`
+* Build and run the Spring Boot service: `./gradlew bootRun`
+* Use `requests.http` to test all API endpoints and business flows.

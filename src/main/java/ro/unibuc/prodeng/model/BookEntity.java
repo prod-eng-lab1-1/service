@@ -10,6 +10,6 @@ public record BookEntity(
         String title,
         int totalCopies,
         int availableCopies,
-        List<String> borrowerIds,     
-        List<String> reservationQueue 
+        List<String> borrowerIds,
+        List<String> reservationQueue
 ) {}

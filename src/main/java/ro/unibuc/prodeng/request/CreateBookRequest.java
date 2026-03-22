@@ -1,8 +1,10 @@
 package ro.unibuc.prodeng.request;
+
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Min;
 
 public record CreateBookRequest(
-        @NotBlank String title,
-        @Min(1) int copies
+        @NotBlank(message = "Titlul nu poate fi gol") String title,
+        @Min(value = 1, message = "Trebuie sa adaugi cel putin o copie") int copies
 ) {}
