@@ -10,6 +10,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import ro.unibuc.prodeng.repository.BookRepository;
 import ro.unibuc.prodeng.repository.UserRepository;
+import ro.unibuc.prodeng.request.BookActionRequest;
 import ro.unibuc.prodeng.request.CreateBookRequest;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 

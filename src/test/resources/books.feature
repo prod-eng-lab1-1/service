@@ -1,17 +1,16 @@
 @E2E
-Feature: book management
+Feature: Advanced Library Management
 
-  Scenario: client creates a user and books
+  Scenario: client borrows a book and decreases stock
     Given a user named Han with email han@rebels.org
-    When the client creates a book "Millennium Falcon Owner's Manual" for han@rebels.org
-    And the client creates a book "The Smuggler's Guide" for han@rebels.org
-    Then the client can retrieve 2 books for han@rebels.org
+    When the client creates a book "Millennium Falcon" with 1 copies
+    And the client borrows the book for han@rebels.org
+    Then the book has 0 available copies
 
-  Scenario: reassign book and mark as borrowed
+  Scenario: client reserves a book when out of stock
     Given a user named Luke with email luke@rebels.org
     And a user named Leia with email leia@rebels.org
-    When the client creates a book "The Jedi Path" for luke@rebels.org
-    And the client reassigns the book to leia@rebels.org
-    And the client marks the book as borrowed
-    Then the client can retrieve 1 books for leia@rebels.org
-    And the book "The Jedi Path" for leia@rebels.org is marked as borrowed
+    When the client creates a book "The Jedi Path" with 1 copies
+    And the client borrows the book for luke@rebels.org
+    And the client reserves the book for leia@rebels.org
+    Then the book has 1 user in queue

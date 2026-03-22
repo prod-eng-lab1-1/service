@@ -2,6 +2,7 @@ package ro.unibuc.prodeng.request;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Min;
 
 public record CreateBookRequest(
         @NotBlank(message = "Titlul nu poate fi gol") String title,
