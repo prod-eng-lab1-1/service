@@ -1,67 +1,45 @@
-### ========================================
-### 1. USER MANAGEMENT
-### ========================================
-
+### 1. Cream User 1 (Alex)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
-{
-  "name": "Alexandru Patrascu",
-  "email": "alex@jedi.com"
-}
+{ "name": "Alex", "email": "alex@jedi.com" }
 
+### 2. Cream User 2 (Mihnea)
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
-{
-  "name": "Mihnea Dinulescu",
-  "email": "mihnea@jedi.com"
-}
+{ "name": "Mihnea", "email": "mihnea@jedi.com" }
 
-### ========================================
-### 2. BOOK CATALOG & INVENTORY
-### ========================================
-
+### 3. Adaugam o carte in catalog (cu 1 singur exemplar fizic)
 POST http://localhost:8080/api/books
 Content-Type: application/json
 
-{
-  "title": "Clean Code",
-  "copies": 1
-}
+{ "title": "Spring Boot Mastery", "copies": 1 }
 
-GET http://localhost:8080/api/books
-Accept: application/json
+### ==============================================================
+### ATENTIE: Copiaza ID-ul cartii create la pasul 3 si pune-l in link-urile de mai jos!
+### ==============================================================
 
-
-### ========================================
-### 3. ADVANCED BORROWING & WAITLIST LOGIC
-### ========================================
-
-POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/borrow
+### 4. Alex IMPRUMUTA cartea (Stocul devine 0)
+POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/borrow
 Content-Type: application/json
 
-{
-  "userEmail": "alex@jedi.com"
-}
+{ "userEmail": "alex@jedi.com" }
 
-POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/borrow
+### 5. Mihnea incearca si el (Va primi EROARE 409 controlata)
+POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/borrow
 Content-Type: application/json
 
-{
-  "userEmail": "mihnea@jedi.com"
-}
+{ "userEmail": "mihnea@jedi.com" }
 
-POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/reserve
+### 6. Mihnea da RESERVE (Intra in coada de asteptare)
+POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/reserve
 Content-Type: application/json
 
-{
-  "userEmail": "mihnea@jedi.com"
-}
+{ "userEmail": "mihnea@jedi.com" }
 
-POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/return
+### 7. Alex RETURNEAZA cartea (Primeste XP, iar cartea se duce la Mihnea)
+POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/return
 Content-Type: application/json
 
-{
-  "userEmail": "alex@jedi.com"
-}
+{ "userEmail": "alex@jedi.com" }

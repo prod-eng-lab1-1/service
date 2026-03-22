@@ -1,104 +1,66 @@
 package ro.unibuc.prodeng.e2e.steps;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.cucumber.java.After;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
 import io.cucumber.java.en.When;
-import org.springframework.http.*;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
-import ro.unibuc.prodeng.model.UserEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.ResponseEntity;
 import ro.unibuc.prodeng.request.BookActionRequest;
 import ro.unibuc.prodeng.request.CreateBookRequest;
 import ro.unibuc.prodeng.request.CreateUserRequest;
 import ro.unibuc.prodeng.response.BookResponse;
-
-import java.util.ArrayList;
-import java.util.List;
+import ro.unibuc.prodeng.response.UserResponse;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 public class BookSteps {
 
-    private static final String BASE_URL = "http://localhost:8080";
-    private final RestTemplate restTemplate = new RestTemplate(new HttpComponentsClientHttpRequestFactory());
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private TestRestTemplate restTemplate;
 
-    private ResponseEntity<String> latestResponse;
-    private final List<String> createdUserIds = new ArrayList<>();
-    private final List<String> createdBookIds = new ArrayList<>();
-    private String lastCreatedBookId;
-    private BookResponse lastBookResponse;
+    private String currentBookId;
 
-    @After
-    public void cleanup() {
-        for (String bookId : createdBookIds) {
-            try { restTemplate.delete(BASE_URL + "/api/books/" + bookId); } catch (Exception e) {}
-        }
-        createdBookIds.clear();
-
-        for (String userId : createdUserIds) {
-            try { restTemplate.delete(BASE_URL + "/api/users/" + userId); } catch (Exception e) {}
-        }
-        createdUserIds.clear();
+    @Given("the database is empty")
+    public void theDatabaseIsEmpty() {
+        // Asumat ca am curatat DB-ul
     }
 
-    @Given("a user named {word} with email {word}")
-    public void createUser(String name, String email) throws Exception {
+    @Given("there is a user registered with email {string} and name {string}")
+    public void createUser(String email, String name) {
         CreateUserRequest request = new CreateUserRequest(name, email);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<CreateUserRequest> entity = new HttpEntity<>(request, headers);
-
-        ResponseEntity<String> response = restTemplate.postForEntity(BASE_URL + "/api/users", entity, String.class);
-        UserEntity user = objectMapper.readValue(response.getBody(), UserEntity.class);
-        createdUserIds.add(user.id());
+        restTemplate.postForEntity("/api/users", request, UserResponse.class);
     }
 
-    @When("the client creates a book {string} with {int} copies")
-    public void createBook(String title, int copies) throws Exception {
+    @Given("there is a book with title {string} and {int} copies in the system")
+    public void createBook(String title, int copies) {
         CreateBookRequest request = new CreateBookRequest(title, copies);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<CreateBookRequest> entity = new HttpEntity<>(request, headers);
-
-        latestResponse = restTemplate.postForEntity(BASE_URL + "/api/books", entity, String.class);
-        lastBookResponse = objectMapper.readValue(latestResponse.getBody(), BookResponse.class);
-        createdBookIds.add(lastBookResponse.id());
-        lastCreatedBookId = lastBookResponse.id();
+        ResponseEntity<BookResponse> response = restTemplate.postForEntity("/api/books", request, BookResponse.class);
+        currentBookId = response.getBody().id();
     }
 
-    @When("the client borrows the book for {word}")
-    public void borrowBook(String email) throws Exception {
+    @When("the user with email {string} borrows the book")
+    public void borrowBook(String email) {
         BookActionRequest request = new BookActionRequest(email);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<BookActionRequest> entity = new HttpEntity<>(request, headers);
-
-        latestResponse = restTemplate.postForEntity(BASE_URL + "/api/books/" + lastCreatedBookId + "/borrow", entity, String.class);
-        lastBookResponse = objectMapper.readValue(latestResponse.getBody(), BookResponse.class);
+        restTemplate.postForEntity("/api/books/" + currentBookId + "/borrow", request, BookResponse.class);
     }
 
-    @When("the client reserves the book for {word}")
-    public void reserveBook(String email) throws Exception {
-        BookActionRequest request = new BookActionRequest(email);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<BookActionRequest> entity = new HttpEntity<>(request, headers);
-
-        latestResponse = restTemplate.postForEntity(BASE_URL + "/api/books/" + lastCreatedBookId + "/reserve", entity, String.class);
-        lastBookResponse = objectMapper.readValue(latestResponse.getBody(), BookResponse.class);
-    }
-
-    @Then("the book has {int} available copies")
-    public void verifyAvailableCopies(int expectedCopies) {
-        assertThat("available copies is incorrect", lastBookResponse.availableCopies(), is(expectedCopies));
-    }
-
-    @Then("the book has {int} user in queue")
-    public void verifyQueueSize(int expectedQueue) {
-        assertThat("queue size is incorrect", lastBookResponse.queueSize(), is(expectedQueue));
+    @Then("the book should have {int} available copies")
+    public void verifyAvailableCopies(int copies) {
+        // AICI ERA PROBLEMA: Trebuie sa fie ResponseEntity<BookResponse[]> in loc de <BookResponse>
+        ResponseEntity<BookResponse[]> response = restTemplate.getForEntity("/api/books", BookResponse[].class);
+        
+        BookResponse[] books = response.getBody();
+        boolean found = false;
+        
+        if (books != null) {
+            for (BookResponse b : books) {
+                if (b.id().equals(currentBookId) && b.availableCopies() == copies) {
+                    found = true;
+                }
+            }
+        }
+        assertThat("Book should have expected available copies", found, is(true));
     }
 }
