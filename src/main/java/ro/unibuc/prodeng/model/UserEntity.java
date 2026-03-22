@@ -5,8 +5,9 @@ import org.springframework.data.mongodb.core.mapping.Document;
 
 @Document(collection = "users")
 public record UserEntity(
-    @Id
-    String id,
-    String name,
-    String email
+        @Id String id,
+        String name,
+        String email,
+        int xp,
+        UserRank rank
 ) {}
