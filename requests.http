@@ -1,78 +1,67 @@
 ### ========================================
-### FEATURE 1: USER MANAGEMENT
+### 1. USER MANAGEMENT
 ### ========================================
 
-### 1.1 Create a new library member
 POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-  "name": "Luke Skywalker",
-  "email": "luke@jedi.com"
+  "name": "Alexandru Patrascu",
+  "email": "alex@jedi.com"
 }
 
-### 1.2 Get all users
-GET http://localhost:8080/api/users
-Accept: application/json
-
-### 1.3 Update user name (DUPA CE CREEZI USERUL MAI SUS, COPIAZA ID-UL LUI AICI)
-PATCH http://localhost:8080/api/users/69b81f6145007442ddc90634/name
+POST http://localhost:8080/api/users
 Content-Type: application/json
 
 {
-  "name": "Master Luke Skywalker"
+  "name": "Mihnea Dinulescu",
+  "email": "mihnea@jedi.com"
 }
 
 ### ========================================
-### FEATURE 2 & 3: BOOK & BORROWING MANAGEMENT
+### 2. BOOK CATALOG & INVENTORY
 ### ========================================
 
-### 2.1 Add a new book to the library
 POST http://localhost:8080/api/books
 Content-Type: application/json
 
 {
-  "title": "The Art of Lightsaber Combat",
-  "borrowerEmail": "luke@jedi.com"
+  "title": "Clean Code",
+  "copies": 1
 }
 
-### 2.2 Get books borrowed by user
-GET http://localhost:8080/api/books?borrowerEmail=luke@jedi.com
+GET http://localhost:8080/api/books
 Accept: application/json
 
-### 2.3 Get book by ID (DUPA CE CREEZI CARTEA MAI SUS, COPIAZA ID-UL EI AICI)
-GET http://localhost:8080/api/books/69b81fae45007442ddc90635
-Accept: application/json
 
-### 3.1 Mark book as currently borrowed (true/false)
-PATCH http://localhost:8080/api/books/69b81fae45007442ddc90635/borrowed
-Content-Type: application/json
+### ========================================
+### 3. ADVANCED BORROWING & WAITLIST LOGIC
+### ========================================
 
-true
-
-### 3.2 Create a second user (Leia)
-POST http://localhost:8080/api/users
+POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/borrow
 Content-Type: application/json
 
 {
-  "name": "Leia Organa",
-  "email": "leia@rebellion.com"
+  "userEmail": "alex@jedi.com"
 }
 
-### 3.3 Re-assign the book to another user (Transfer borrow)
-PATCH http://localhost:8080/api/books/69b81fae45007442ddc90635/borrower
+POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/borrow
 Content-Type: application/json
 
 {
-  "newBorrowerEmail": "leia@rebellion.com"
+  "userEmail": "mihnea@jedi.com"
 }
 
-### ========================================
-### CLEANUP (DELETE ENDPOINTS)
-### ========================================
+POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/reserve
+Content-Type: application/json
 
-### Delete the book
-DELETE http://localhost:8080/api/books/69b81fae45007442ddc90635
+{
+  "userEmail": "mihnea@jedi.com"
+}
 
-### Delete the user
-DELETE http://localhost:8080/api/users/69b81fea45007442ddc90636
+POST http://localhost:8080/api/books/PUNE_ID_CARTE_AICI/return
+Content-Type: application/json
+
+{
+  "userEmail": "alex@jedi.com"
+}
