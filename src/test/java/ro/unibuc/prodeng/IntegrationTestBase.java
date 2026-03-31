@@ -8,28 +8,22 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.containers.MongoDBContainer;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-/**
- * Base class for integration tests that need a real MongoDB database.
- * Uses Testcontainers to spin up a MongoDB instance in Docker.
- */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureMockMvc
 @Testcontainers
 @Tag("IntegrationTest")
 public abstract class IntegrationTestBase {
-    private static final MongoDBContainer mongoDBContainer =
-            new MongoDBContainer("mongo:6.0.20")
-                    .withExposedPorts(27017)
-                    .withSharding()
-                    .withLabel("ro.unibuc.prodeng", "integration-test-mongo");
 
-    static {
-        mongoDBContainer.start();
-    }
+   private static final MongoDBContainer mongoDBContainer =
+           new MongoDBContainer("mongo:latest")
+                   .withExposedPorts(27017);
 
-    @DynamicPropertySource
-    static void setProperties(DynamicPropertyRegistry registry) {
-        String mongoUrl = "mongodb://localhost:" + mongoDBContainer.getMappedPort(27017);
-        registry.add("mongodb.connection.url", () -> mongoUrl);
-    }
+   static {
+      mongoDBContainer.start();
+   }
+
+   @DynamicPropertySource
+   static void setProperties(DynamicPropertyRegistry registry) {
+      registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+   }
 }
