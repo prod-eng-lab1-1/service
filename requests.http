@@ -21,25 +21,25 @@ Content-Type: application/json
 ### ==============================================================
 
 ### 4. Alex IMPRUMUTA cartea (Stocul devine 0)
-POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/borrow
+POST http://localhost:8080/api/books/69c3123637e67e7f63f00416/borrow
 Content-Type: application/json
 
 { "userEmail": "alex@jedi.com" }
 
 ### 5. Mihnea incearca si el (Va primi EROARE 409 controlata)
-POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/borrow
+POST http://localhost:8080/api/books/69c3123637e67e7f63f00416/borrow
 Content-Type: application/json
 
 { "userEmail": "mihnea@jedi.com" }
 
 ### 6. Mihnea da RESERVE (Intra in coada de asteptare)
-POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/reserve
+POST http://localhost:8080/api/books/69c3123637e67e7f63f00416/reserve
 Content-Type: application/json
 
 { "userEmail": "mihnea@jedi.com" }
 
 ### 7. Alex RETURNEAZA cartea (Primeste XP, iar cartea se duce la Mihnea)
-POST http://localhost:8080/api/books/69c03ec39f20095b97dce942/return
+POST http://localhost:8080/api/books/69c3123637e67e7f63f00416/return
 Content-Type: application/json
 
 { "userEmail": "alex@jedi.com" }
