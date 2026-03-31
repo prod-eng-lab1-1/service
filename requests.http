@@ -43,3 +43,29 @@ POST http://localhost:8080/api/books/69c3123637e67e7f63f00416/return
 Content-Type: application/json
 
 { "userEmail": "alex@jedi.com" }
+
+
+### ==========================================
+### PREGATIRE TEST JMETER (CALIN) - Stoc 1
+### ==========================================
+### ==========================================
+### PREGATIRE TEST JMETER CALIN (RULATI PE RAND)
+### ==========================================
+
+### 1. Cream utilizatorul (ca sa nu mai luam eroarea 404)
+POST http://localhost:8080/api/users
+Content-Type: application/json
+
+{ 
+  "name": "Alexandru", 
+  "email": "alex@jedi.com" 
+}
+
+### 2. Cream cartea pe care ne vom bate (stoc 1)
+POST http://localhost:8080/api/books
+Content-Type: application/json
+
+{ 
+  "title": "Cartea de Aur (Test Concurenta)", 
+  "copies": 1 
+}

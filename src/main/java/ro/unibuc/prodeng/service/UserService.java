@@ -65,4 +65,8 @@ public class UserService {
     private UserResponse toResponse(UserEntity user) {
         return new UserResponse(user.id(), user.name(), user.email());
     }
+
+     public void deleteUser(String id) {
+        userRepository.deleteById(id);
+    }
 }
