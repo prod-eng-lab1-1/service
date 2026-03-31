@@ -38,4 +38,10 @@ public class UserController {
     public ResponseEntity<UserResponse> changeName(@PathVariable String id, @RequestBody String newName) throws EntityNotFoundException {
         return ResponseEntity.ok(userService.changeName(id, newName));
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable String id) {
+        userService.deleteUser(id);
+        return ResponseEntity.noContent().build();
+    }
 }

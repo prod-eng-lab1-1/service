@@ -71,4 +71,6 @@ class UserServiceTest {
         userService.addXpAndSave(user, 50); // Devine 300 XP -> GOLD
         verify(userRepository).save(argThat(u -> u.rank() == UserRank.GOLD && u.xp() == 300));
     }
+
+
 }
