@@ -28,7 +28,7 @@ pipeline {
         stage('Version & Tag') {
             steps {
                 script {
-                    sh 'git fetch --tags'
+                    sh 'git fetch --tag'
                     env.MAJOR_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 1',
                         returnStdout: true
@@ -41,14 +41,6 @@ pipeline {
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 3',
                         returnStdout: true
                     ).trim()
-                    
-                    // Tratăm cazul în care nu există încă niciun tag (ex: prima rulare)
-                    if (!env.MAJOR_VERSION || env.MAJOR_VERSION == "") {
-                        env.MAJOR_VERSION = "1"
-                        env.MINOR_VERSION = "0"
-                        env.PATCH_VERSION = "0"
-                    }
-                    
                     def minorInt = env.MINOR_VERSION.toInteger()
                     env.IMAGE_TAG = "${env.MAJOR_VERSION}.${minorInt + 1}.${env.PATCH_VERSION}"
                     echo "Building version: ${env.IMAGE_TAG}"
@@ -58,7 +50,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG -f ./Dockerfile .'
+                sh 'docker build -t $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG .'
             }
         }
 
@@ -75,7 +67,7 @@ pipeline {
             steps {
                 sh '''
                     git tag $IMAGE_TAG
-                    git push https://$GITHUB_TOKEN_USR:$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git $IMAGE_TAG
+                    git push https://$GITHUB_TOKEN_PSW@github.com/YOUR-ORG/service.git $IMAGE_TAG
                 '''
             }
         }
