@@ -7,56 +7,59 @@ pipeline {
     }
 
     environment {
-    CI = 'true'
+        CI = 'true'
+        DOCKER_HUB_USERNAME = 'calinfrunzeanuuclm'
+        DOCKER_PASSWORD = credentials('docker_password')
+        GITHUB_TOKEN = credentials('github_token')
     }
 
-    stage('Build') {
-    steps {
-        script {
-            env.TESTCONTAINERS_HOST_OVERRIDE = sh(
-                script: "ip route | grep default | cut -d' ' -f3",
-                returnStdout: true
-            ).trim()
-            
-            echo "Setare Testcontainers Host Override pe IP: ${env.TESTCONTAINERS_HOST_OVERRIDE}"
+    stages {
+        stage('Build') {
+            steps {
+                script {
+                    env.TESTCONTAINERS_HOST_OVERRIDE = sh(
+                        script: "ip route | grep default | cut -d' ' -f3",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Testcontainers host override: ${env.TESTCONTAINERS_HOST_OVERRIDE}"
+                }
+                sh './gradlew clean build -x test'
+            }
         }
-        sh './gradlew clean build -x test'  // <-- ADAUGĂ -x test
-    }
-}
 
-stage('Test') {
-    steps {
-        sh './gradlew test'  // Rulează separat cu excluderea CI
-    }
-}
+        stage('Test') {
+            steps {
+                sh './gradlew test'
+            }
+        }
 
         stage('Version & Tag') {
             steps {
                 script {
                     sh 'git fetch --tags'
-                    
+
                     env.MAJOR_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 1',
                         returnStdout: true
                     ).trim()
-                    
+
                     env.MINOR_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 2',
                         returnStdout: true
                     ).trim()
-                    
+
                     env.PATCH_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 3',
                         returnStdout: true
                     ).trim()
-                    
-                    // Fallback pentru prima rulare (când nu există niciun tag)
+
                     if (!env.MAJOR_VERSION || env.MAJOR_VERSION == "") {
                         env.MAJOR_VERSION = "1"
                         env.MINOR_VERSION = "-1"
                         env.PATCH_VERSION = "0"
                     }
-                    
+
                     def minorInt = env.MINOR_VERSION.toInteger()
                     env.IMAGE_TAG = "${env.MAJOR_VERSION}.${minorInt + 1}.${env.PATCH_VERSION}"
                     echo "Building version: ${env.IMAGE_TAG}"
