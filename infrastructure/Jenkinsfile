@@ -7,34 +7,28 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USERNAME = 'calinfrunzeanu'
-        DOCKER_PASSWORD = credentials('docker_password')
-        GITHUB_TOKEN = credentials('github_token')
+    CI = 'true'
     }
 
-    stages {
-        stage('Build') {
-            steps {
-                script {
-                    // Aflăm IP-ul mașinii gazdă (gateway-ul) din perspectiva containerului 
-                    // și îi spunem lui Testcontainers să îl folosească în loc de 'localhost'
-                    env.TESTCONTAINERS_HOST_OVERRIDE = sh(
-                        script: "ip route | grep default | cut -d' ' -f3",
-                        returnStdout: true
-                    ).trim()
-                    
-                    echo "Setare Testcontainers Host Override pe IP: ${env.TESTCONTAINERS_HOST_OVERRIDE}"
-                }
-                sh './gradlew clean build'
-            }
+    stage('Build') {
+    steps {
+        script {
+            env.TESTCONTAINERS_HOST_OVERRIDE = sh(
+                script: "ip route | grep default | cut -d' ' -f3",
+                returnStdout: true
+            ).trim()
+            
+            echo "Setare Testcontainers Host Override pe IP: ${env.TESTCONTAINERS_HOST_OVERRIDE}"
         }
-        }
+        sh './gradlew clean build -x test'  // <-- ADAUGĂ -x test
+    }
+}
 
-        stage('Test') {
-            steps {
-                sh './gradlew test'
-            }
-        }
+stage('Test') {
+    steps {
+        sh './gradlew test'  // Rulează separat cu excluderea CI
+    }
+}
 
         stage('Version & Tag') {
             steps {

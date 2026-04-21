@@ -7,19 +7,31 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.MongoDBContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import ro.unibuc.prodeng.repository.BookRepository;
 import ro.unibuc.prodeng.repository.UserRepository;
-import ro.unibuc.prodeng.request.BookActionRequest;
 import ro.unibuc.prodeng.request.CreateBookRequest;
-import ro.unibuc.prodeng.request.CreateUserRequest;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Testcontainers  // <-- ADĂUGAT
 class BookControllerIntegrationTest {
+
+    @Container  // <-- ADĂUGAT
+    static MongoDBContainer mongoDBContainer = new MongoDBContainer("mongo:7.0");
+
+    @DynamicPropertySource  // <-- ADĂUGAT
+    static void setProperties(DynamicPropertyRegistry registry) {
+        registry.add("spring.data.mongodb.uri", mongoDBContainer::getReplicaSetUrl);
+    }
 
     @Autowired private MockMvc mockMvc;
     @Autowired private ObjectMapper objectMapper;
