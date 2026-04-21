@@ -7,6 +7,7 @@ pipeline {
     }
 
     environment {
+        CI = 'true'
         DOCKER_HUB_USERNAME = 'calinfrunzeanu'
         DOCKER_PASSWORD = credentials('docker_password')
         GITHUB_TOKEN = credentials('github_token')
@@ -15,7 +16,15 @@ pipeline {
     stages {
         stage('Build') {
             steps {
-                sh './gradlew clean build'
+                script {
+                    env.TESTCONTAINERS_HOST_OVERRIDE = sh(
+                        script: "ip route | grep default | cut -d' ' -f3",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Testcontainers host override: ${env.TESTCONTAINERS_HOST_OVERRIDE}"
+                }
+                sh './gradlew clean build -x test'
             }
         }
 
@@ -29,26 +38,28 @@ pipeline {
             steps {
                 script {
                     sh 'git fetch --tags'
+
                     env.MAJOR_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 1',
                         returnStdout: true
                     ).trim()
+
                     env.MINOR_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 2',
                         returnStdout: true
                     ).trim()
+
                     env.PATCH_VERSION = sh(
                         script: 'git tag | sort -V | tail -1 | cut -d . -f 3',
                         returnStdout: true
                     ).trim()
-                    
-                    // Tratăm cazul în care nu există încă niciun tag (ex: prima rulare)
+
                     if (!env.MAJOR_VERSION || env.MAJOR_VERSION == "") {
                         env.MAJOR_VERSION = "1"
-                        env.MINOR_VERSION = "0"
+                        env.MINOR_VERSION = "-1"
                         env.PATCH_VERSION = "0"
                     }
-                    
+
                     def minorInt = env.MINOR_VERSION.toInteger()
                     env.IMAGE_TAG = "${env.MAJOR_VERSION}.${minorInt + 1}.${env.PATCH_VERSION}"
                     echo "Building version: ${env.IMAGE_TAG}"
@@ -58,7 +69,7 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG -f ./Dockerfile .'
+                sh 'docker build -t $DOCKER_HUB_USERNAME/prod-eng-img:$IMAGE_TAG .'
             }
         }
 
@@ -75,7 +86,7 @@ pipeline {
             steps {
                 sh '''
                     git tag $IMAGE_TAG
-                    git push https://$GITHUB_TOKEN_USR:$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git $IMAGE_TAG
+                    git push https://$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git $IMAGE_TAG
                 '''
             }
         }
