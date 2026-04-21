@@ -84,10 +84,18 @@ pipeline {
 
         stage('Tag Release') {
             steps {
-                sh '''
-                    git tag $IMAGE_TAG
-                    git push https://$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git $IMAGE_TAG
-                '''
+                script {
+                    def tagExists = sh(
+                        script: "git ls-remote --tags https://$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git refs/tags/$IMAGE_TAG | wc -l",
+                        returnStdout: true
+                    ).trim()
+                    if (tagExists == '0') {
+                        sh "git tag $IMAGE_TAG"
+                        sh "git push https://$GITHUB_TOKEN_PSW@github.com/prod-eng-lab1-1/service.git $IMAGE_TAG"
+                    } else {
+                        echo "Tag $IMAGE_TAG already exists, skipping."
+                    }
+                }
             }
         }
     }
