@@ -8,7 +8,7 @@ pipeline {
 
     environment {
         CI = 'true'
-        DOCKER_HUB_USERNAME = 'calinfrunzeanu'
+        DOCKER_HUB_USERNAME = 'mihnea1337'
         DOCKER_PASSWORD = credentials('docker_password')
         GITHUB_TOKEN = credentials('github_token')
     }
