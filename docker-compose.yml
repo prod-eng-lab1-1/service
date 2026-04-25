@@ -1,7 +1,6 @@
 services:
   prod-eng:
-    image: prod-eng-img
-    build: .
+    image: ${PROD_ENG_IMAGE:-prod-eng-img}
     ports:
       - 8080:8080
       # Port for debug
@@ -14,6 +13,8 @@ services:
       - "prod-eng-service"
   jenkins:
     image: jenkins/jenkins
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - 8082:8080
       - 50000:50000
